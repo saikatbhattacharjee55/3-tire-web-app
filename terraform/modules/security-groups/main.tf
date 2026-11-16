@@ -66,19 +66,19 @@ resource "aws_security_group" "rds" {
 resource "aws_vpc_security_group_ingress_rule" "web_alb_from_cloudfront" {
   security_group_id = aws_security_group.web_alb.id
   prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront_origin_facing.id
-  from_port         = 443
-  to_port           = 443
+  from_port         = var.alb_ingress_port
+  to_port           = var.alb_ingress_port
   ip_protocol       = "tcp"
-  description       = "HTTPS from CloudFront origin-facing servers."
+  description       = "HTTP from CloudFront origin-facing servers to internal ALB listeners."
 }
 
 resource "aws_vpc_security_group_ingress_rule" "api_alb_from_cloudfront" {
   security_group_id = aws_security_group.api_alb.id
   prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront_origin_facing.id
-  from_port         = 443
-  to_port           = 443
+  from_port         = var.alb_ingress_port
+  to_port           = var.alb_ingress_port
   ip_protocol       = "tcp"
-  description       = "HTTPS from CloudFront origin-facing servers."
+  description       = "HTTP from CloudFront origin-facing servers to internal ALB listeners."
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_ecs_from_alb" {
@@ -151,4 +151,60 @@ resource "aws_vpc_security_group_egress_rule" "api_ecs_to_rds" {
   to_port                      = var.database_port
   ip_protocol                  = "tcp"
   description                  = "PostgreSQL egress to the RDS security group."
+}
+
+resource "aws_security_group" "cache" {
+  name                   = "${var.name}-${var.environment_name}-cache-sg"
+  description            = "Redis access only from the web and API ECS task security groups."
+  vpc_id                 = var.vpc_id
+  revoke_rules_on_delete = true
+  tags                   = merge(var.tags, { Name = "${var.name}-${var.environment_name}-cache-sg", Environment = var.environment_name, Tier = "cache" })
+}
+resource "aws_vpc_security_group_ingress_rule" "cache_from_web" {
+  security_group_id            = aws_security_group.cache.id
+  referenced_security_group_id = aws_security_group.web_ecs.id
+  from_port                    = 6379
+  to_port                      = 6379
+  ip_protocol                  = "tcp"
+  description                  = "Redis TLS from web ECS tasks."
+}
+resource "aws_vpc_security_group_ingress_rule" "cache_from_api" {
+  security_group_id            = aws_security_group.cache.id
+  referenced_security_group_id = aws_security_group.api_ecs.id
+  from_port                    = 6379
+  to_port                      = 6379
+  ip_protocol                  = "tcp"
+  description                  = "Redis TLS from API ECS tasks."
+}
+resource "aws_vpc_security_group_egress_rule" "web_ecs_to_api_alb" {
+  security_group_id            = aws_security_group.web_ecs.id
+  referenced_security_group_id = aws_security_group.api_alb.id
+  from_port                    = var.alb_ingress_port
+  to_port                      = var.alb_ingress_port
+  ip_protocol                  = "tcp"
+  description                  = "Web server-side API requests to the internal API load balancer."
+}
+resource "aws_vpc_security_group_ingress_rule" "api_alb_from_web_ecs" {
+  security_group_id            = aws_security_group.api_alb.id
+  referenced_security_group_id = aws_security_group.web_ecs.id
+  from_port                    = var.alb_ingress_port
+  to_port                      = var.alb_ingress_port
+  ip_protocol                  = "tcp"
+  description                  = "Web server-side requests to the API load balancer."
+}
+resource "aws_vpc_security_group_egress_rule" "web_ecs_to_cache" {
+  security_group_id            = aws_security_group.web_ecs.id
+  referenced_security_group_id = aws_security_group.cache.id
+  from_port                    = 6379
+  to_port                      = 6379
+  ip_protocol                  = "tcp"
+  description                  = "Redis TLS access from web tasks."
+}
+resource "aws_vpc_security_group_egress_rule" "api_ecs_to_cache" {
+  security_group_id            = aws_security_group.api_ecs.id
+  referenced_security_group_id = aws_security_group.cache.id
+  from_port                    = 6379
+  to_port                      = 6379
+  ip_protocol                  = "tcp"
+  description                  = "Redis TLS access from API tasks."
 }

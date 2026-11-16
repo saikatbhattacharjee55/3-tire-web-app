@@ -1,4 +1,4 @@
-﻿# Terraform working directory and local state
+# Terraform working directory and local state
 .terraform/
 *.tfstate
 *.tfstate.*
@@ -20,3 +20,5 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+.elasticache/

@@ -36,3 +36,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "alb_ingress_port" {
+  description = "HTTP port used between CloudFront VPC origins and the internal ALBs."
+  type        = number
+  default     = 80
+}

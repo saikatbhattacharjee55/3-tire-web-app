@@ -60,3 +60,27 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "image_tag" {
+  description = "Immutable Docker image tag (use the source commit SHA)."
+  type        = string
+  default     = "49dd7dc"
+}
+variable "deploy_services" {
+  description = "Set true after both images have been pushed to ECR."
+  type        = bool
+  default     = false
+}
+variable "ecs_desired_count" {
+  description = "Number of tasks for each service in the dev environment."
+  type        = number
+  default     = 1
+}
+variable "rds_instance_class" {
+  type    = string
+  default = "db.t4g.micro"
+}
+variable "elasticache_node_type" {
+  type    = string
+  default = "cache.t4g.micro"
+}

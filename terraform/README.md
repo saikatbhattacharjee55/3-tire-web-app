@@ -1,34 +1,27 @@
-# Terraform infrastructure plan
+﻿# AWS three-tier web application
 
-This folder builds the AWS infrastructure one reusable module at a time. The first implementation step is the VPC module. Terraform configuration and plans are local review artifacts; no AWS resources are created until a separate `terraform apply` is approved.
+Terraform modules for deploying the current web and API containers to AWS ECS/Fargate in the existing dev VPC.
 
-## Delivery steps
+## Architecture
 
-1. **VPC module (current):** VPC, two or three AZs, public subnets for NAT, private application subnets, isolated database subnets, route tables, internet gateway, and a cost-conscious single NAT Gateway by default.
-2. **Security groups (current):** CloudFront-only HTTPS to internal load balancers, load-balancer-only ingress to each ECS service, and API-only PostgreSQL access to RDS.
-3. **IAM:** ECS task execution and task roles with least-privilege policies.
-4. **ECR:** separate image repositories for frontend and API.
-5. **RDS:** private subnet group, database instance, encryption, backups, and secret handling.
-6. **Load balancing:** internal ALB and frontend/API target groups and listener routing, aligned with the project networking guidance.
-7. **ECS:** Fargate cluster and separate frontend and API task definitions/services, logs, health checks, and scaling.
-8. **Edge and operations:** CloudFront/WAF, DNS if needed, alarms, and dashboards.
-9. **Environment and state:** review dev inputs, remote state, and deployment workflow before use beyond local development.
+CloudFront provides HTTPS and sends `/api/*` to the private API ALB; all other paths go to the private web ALB. Each internal ALB forwards to its own ECS service. The API uses private PostgreSQL RDS. A private Redis OSS cluster is included to match the reference project, but the checked-in app does not currently use Redis. The existing VPC has public/NAT, private application, and isolated database subnets.
 
-Each step will be reviewed and validated before moving to the next module. Before any cloud deployment, review the plan and expected costs, then explicitly approve the apply.
+The checked-in `web` application is Express/Jade, not React. The modules deploy the current source as-is.
 
-## Current VPC defaults
+## Modules
 
-- Region: `us-east-1` (inherited from the reference project; change before deployment if needed).
-- Environment: `dev`.
-- VPC: `10.0.0.0/16`.
-- Availability zones: two, selected dynamically from the chosen region.
-- Subnets: one public, one private application, and one isolated database subnet per AZ.
-- NAT: one shared NAT Gateway by default to keep development cost lower. It is a single-AZ egress path; set `nat_gateway_per_az = true` for one gateway per AZ and higher availability, with higher cost.
-- Load balancers and ECS tasks are intended to be private per the reference project guidance; the public subnets support the internet gateway and NAT only.
+- `vpc` and `security-groups`: network foundation and tier-specific access rules.
+- `ecr`: separate immutable, scan-on-push repositories for web and API.
+- `iam`: least-privilege ECS execution/task roles and database-secret read access.
+- `rds`: encrypted private PostgreSQL with an RDS-managed master password.
+- `elasticache`: private, TLS-enabled two-node Redis OSS 7.1 with an AUTH token in Secrets Manager.
+- `alb`: separate internal web/API ALBs, target groups, and health checks.
+- `ecs`: separate Fargate task definitions/services and CloudWatch log groups.
+- `cloudfront`: HTTPS viewer endpoint and `/api/*` route to the API origin.
 
-## Review commands
+## Deployment
 
-From this folder:
+From this directory:
 
 ```powershell
 terraform init
@@ -37,4 +30,10 @@ terraform validate
 terraform plan
 ```
 
-`terraform plan` previews intended changes and does not create them. Do not run `terraform apply` until the plan has been reviewed and approved. Do not commit real credentials or `.tfvars` containing secrets.
+The ECS services default to zero tasks while images are prepared. The current app images use immutable tag `49dd7dc`. Set `deploy_services = true` in a local ignored `terraform.auto.tfvars` file, then plan and apply to start one task for each service.
+
+Terraform outputs `web_url` and `api_status_url`. The status endpoint is `/api/status`.
+
+The current AWS account rejected the RDS creation request because the requested automated backup retention exceeds its Free Tier limit. Resolve the account restriction or explicitly choose a permitted development retention setting before reapplying RDS and ECS.
+
+Do not commit `.env`, `.tfvars`, Terraform state, or plan files. The local Terraform state includes sensitive ElastiCache authentication material; protect it and migrate to encrypted remote state before team use.

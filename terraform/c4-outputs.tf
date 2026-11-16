@@ -58,3 +58,25 @@ output "rds_security_group_id" {
   description = "Security group ID for PostgreSQL RDS."
   value       = module.security_groups.rds_security_group_id
 }
+
+output "ecr_web_repository_url" {
+  value = module.ecr.web_repository_url
+}
+output "ecr_api_repository_url" {
+  value = module.ecr.api_repository_url
+}
+output "cloudfront_domain_name" {
+  value = module.cloudfront.domain_name
+}
+output "web_url" {
+  value = module.cloudfront.web_url
+}
+output "api_status_url" {
+  value = module.cloudfront.api_status_url
+}
+output "rds_endpoint" {
+  value = module.rds.endpoint
+}
+output "elasticache_endpoint" {
+  value = module.elasticache.primary_endpoint
+}

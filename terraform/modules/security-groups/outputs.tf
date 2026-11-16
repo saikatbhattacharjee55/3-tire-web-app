@@ -22,3 +22,8 @@ output "rds_security_group_id" {
   description = "Security group ID for the RDS database."
   value       = aws_security_group.rds.id
 }
+
+output "cache_security_group_id" {
+  description = "Security group ID for the private ElastiCache cluster."
+  value       = aws_security_group.cache.id
+}
