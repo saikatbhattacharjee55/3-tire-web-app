@@ -1,11 +1,11 @@
-﻿# Terraform infrastructure plan
+# Terraform infrastructure plan
 
 This folder builds the AWS infrastructure one reusable module at a time. The first implementation step is the VPC module. Terraform configuration and plans are local review artifacts; no AWS resources are created until a separate `terraform apply` is approved.
 
 ## Delivery steps
 
 1. **VPC module (current):** VPC, two or three AZs, public subnets for NAT, private application subnets, isolated database subnets, route tables, internet gateway, and a cost-conscious single NAT Gateway by default.
-2. **Security groups:** limit traffic between the CloudFront VPC origin/internal load balancer, frontend ECS service, API ECS service, and RDS.
+2. **Security groups (current):** CloudFront-only HTTPS to internal load balancers, load-balancer-only ingress to each ECS service, and API-only PostgreSQL access to RDS.
 3. **IAM:** ECS task execution and task roles with least-privilege policies.
 4. **ECR:** separate image repositories for frontend and API.
 5. **RDS:** private subnet group, database instance, encryption, backups, and secret handling.

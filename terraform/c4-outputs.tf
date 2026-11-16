@@ -33,3 +33,28 @@ output "nat_gateway_ids" {
   value       = module.vpc.nat_gateway_ids
 }
 
+
+output "web_alb_security_group_id" {
+  description = "Security group ID for the internal web load balancer."
+  value       = module.security_groups.web_alb_security_group_id
+}
+
+output "api_alb_security_group_id" {
+  description = "Security group ID for the internal API load balancer."
+  value       = module.security_groups.api_alb_security_group_id
+}
+
+output "web_ecs_security_group_id" {
+  description = "Security group ID for the web ECS tasks."
+  value       = module.security_groups.web_ecs_security_group_id
+}
+
+output "api_ecs_security_group_id" {
+  description = "Security group ID for the API ECS tasks."
+  value       = module.security_groups.api_ecs_security_group_id
+}
+
+output "rds_security_group_id" {
+  description = "Security group ID for PostgreSQL RDS."
+  value       = module.security_groups.rds_security_group_id
+}
