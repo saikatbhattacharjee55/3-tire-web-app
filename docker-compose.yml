@@ -1,0 +1,121 @@
+services:
+
+  # ---------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: devops-postgres
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: devops_api
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d devops_api"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - devops-network
+
+
+  # ---------------------------------------------------
+  # Redis
+  # ---------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: devops-redis
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    volumes:
+      - redis_data:/data
+
+    networks:
+      - devops-network
+
+
+  # ---------------------------------------------------
+  # API
+  # ---------------------------------------------------
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+
+    container_name: devops-api
+
+    env_file:
+      - ./api/.env
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - devops-network
+
+
+  # ---------------------------------------------------
+  # Web
+  # ---------------------------------------------------
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+
+    container_name: devops-web
+
+    env_file:
+      - ./web/.env
+
+    ports:
+      - "3001:3000"
+
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - devops-network
+
+
+# ---------------------------------------------------
+# Persistent Volumes
+# ---------------------------------------------------
+volumes:
+
+  postgres_data:
+    name: devops-postgres-data
+
+  redis_data:
+    name: devops-redis-data
+
+
+# ---------------------------------------------------
+# Application Network
+# ---------------------------------------------------
+networks:
+
+  devops-network:
+    name: devops-network
+    driver: bridge

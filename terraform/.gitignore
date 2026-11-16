@@ -1,0 +1,22 @@
+﻿# Terraform working directory and local state
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+
+# Sensitive or environment-specific values
+*.tfvars
+*.tfvars.json
+
+# Generated plans and crash logs
+*.tfplan
+crash.log
+crash.*.log
+
+# Local CLI overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
